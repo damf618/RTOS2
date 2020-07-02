@@ -20,6 +20,9 @@
 int main( void )
 {
 	boardInit();
+
+	ejercicio1_set_up();
+
    // Create a task in freeRTOS with dynamic memory
 	BaseType_t res= xTaskCreate(
 			   Tarea_A,        				// Function that implements the task.

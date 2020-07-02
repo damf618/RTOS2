@@ -20,8 +20,12 @@
 
 
 /*=====[Definitions of private data types]===================================*/
-QueueHandle_t cola_1;				//Recurso 1
-tLedTecla boton1, boton2;
+
+	QueueHandle_t cola_1;				//Recurso 1
+	tLedTecla boton1, boton2;
+	SemaphoreHandle_t mutex_1;
+
+
 
 char* itoa(int value, char* result, int base) {
    // check that the base if valid
@@ -47,26 +51,43 @@ char* itoa(int value, char* result, int base) {
    return result;
 }
 
+void ejercicio1_set_up(){
+	char aux[30];
+
+	fsmButtonInit( &boton1,TECLA1_TAREA_B);
+	fsmButtonInit( &boton2,TECLA2_TAREA_B);
+
+	cola_1 = xQueueCreate( 1, sizeof(aux));
+	while( cola_1 == NULL )
+	    {
+	        /* Queue was not created. */
+		 	 uartWriteString( UART_USB, "ERROR, la cola no fue creada" );
+	    }
+	mutex_1 = xSemaphoreCreateMutex();
+	while( mutex_1 == NULL )
+	{
+	     /* Queue was not created. */
+		 uartWriteString( UART_USB, "ERROR, el mutex no fue creado" );
+	}
+}
 
 void Message_Construction1( )
 {
 	char aux[10]=MSG1;
 
-	//TODO Cuanto tiempo?
 	xQueueSend( cola_1 , &aux,  portMAX_DELAY  );
 }
 
 void Message_Construction2( tLedTecla* boton, char index)
 {
-	char aux[20]="TEC_ T___  \r\n";
+	char aux[20]="TEC_ T____";
 	char index_pos=3;
 	char time_pos=6;
+	char final_pos=11;
 	uint8_t precision=3;
 	uint8_t i=0;
 	uint32_t data;
 	char buf [precision];
-
-
 
 	if(boton->tiempo_medido>0){
 		aux[index_pos]=index;
@@ -84,28 +105,20 @@ void Message_Construction2( tLedTecla* boton, char index)
 void Tarea_A( void* taskParmPtr )
 {
 	char aux[30];
-	cola_1 = xQueueCreate( 10, sizeof(aux));
-	if( cola_1 == NULL )
-	    {
-	        /* Queue was not created and must not be used. */
-	    }
-
-	TickType_t xPeriodicity =  5000 / portTICK_RATE_MS;		// Tarea periodica cada 1000 ms
+	TickType_t xPeriodicity =  1000 / portTICK_RATE_MS;		// Tarea periodica cada 1000 ms
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 	while( 1 )
 	{
 		gpioWrite( LED_TAREA_A , ON );
 		Message_Construction1();
+		vTaskDelay(LED_TIMING/portTICK_RATE_MS);
+		gpioWrite( LED_TAREA_A , OFF );
 		vTaskDelayUntil( &xLastWakeTime, xPeriodicity );
 	}
 }
 
-
 void Tarea_B( void* taskParmPtr )
 {
-
-	fsmButtonInit( &boton1,TECLA1_TAREA_B);
-	fsmButtonInit( &boton2,TECLA2_TAREA_B);
 
 	TickType_t xPeriodicity =  DEBOUNCE_TIME / portTICK_RATE_MS;		// Tarea periodica cada 1000 ms
 	TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -123,15 +136,16 @@ void Tarea_B( void* taskParmPtr )
 
 void Tarea_C( void* taskParmPtr )
 {
-	TickType_t xPeriodicity =  1000 / portTICK_RATE_MS;		// Tarea periodica cada 1000 ms
+	TickType_t xPeriodicity =  500 / portTICK_RATE_MS;		// Tarea periodica cada 1000 ms
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 	char aux[30];
 	while( 1 )
 	{
-		if( xQueueReceive( cola_1, &aux,0 ) == pdPASS )
-		      {
-			 uartWriteString( UART_USB, aux );
-		      }
+		xQueueReceive( cola_1, &aux,portMAX_DELAY );	//Si existe un dato solicito el recurso de UART
+		xSemaphoreTake( mutex_1, portMAX_DELAY );
+		uartWriteString( UART_USB, aux );
+		uartWriteString( UART_USB, END_CHAR );
+		xSemaphoreGive( mutex_1 );
 		vTaskDelayUntil( &xLastWakeTime, xPeriodicity );
 	}
 }

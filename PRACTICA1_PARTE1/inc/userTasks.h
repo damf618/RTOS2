@@ -28,11 +28,13 @@ extern "C" {
 #define LED_TAREA_A LEDB
 #define TECLA1_TAREA_B TEC1
 #define TECLA2_TAREA_B TEC2
-#define MSG1 "LED ON \r\n"
+#define MSG1 "LED ON "
 #define INDEX_1 49
 #define INDEX_2 50
+#define LED_TIMING 500
+#define END_CHAR "\r\n"
 /*=====[Prototypes (declarations) of public functions]=======================*/
-
+void ejercicio1_set_up();
 void Tarea_A( void* taskParmPtr );
 void Tarea_B( void* taskParmPtr );
 void Tarea_C( void* taskParmPtr );
