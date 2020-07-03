@@ -34,6 +34,8 @@ typedef struct
 	gpioMap_t tecla;					//Tecla para antirebote
 	gpioMap_t led_a;					//Led Asociado a la Tecla
 
+	char index;
+
 	TickType_t tiempo_medido;			//variables
 	fsmButtonState_t fsmButtonState;	//Estado Actual
 	TickType_t tiempo_down;				//Aux Tiempo en Down
@@ -42,10 +44,9 @@ typedef struct
 } tLedTecla;
 
 void fsmButtonError( tLedTecla* config );
-void fsmButtonInit( tLedTecla* config ,gpioMap_t button);
-void fsmButtonUpdate( tLedTecla* config );
-void buttonPressed( tLedTecla* config );
-void buttonReleased( tLedTecla* config );
+void fsmButtonInit( tLedTecla* config ,gpioMap_t button,char index);
+void fsmButtonUpdate( tLedTecla* config, QueueHandle_t cola );
+
 TickType_t get_Time(tLedTecla* config);
 
 /*=====[C++ - end]===========================================================*/

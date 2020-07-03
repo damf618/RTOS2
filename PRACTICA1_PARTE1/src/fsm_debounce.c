@@ -32,6 +32,17 @@
 #include "sapi.h"
 #include "fsm_debounce.h"
 #include "FreeRTOS.h"
+#include "userTasks.h"
+
+void Message_Construction2( tLedTecla* boton, QueueHandle_t cola)
+{
+	char aux[MESSAGE_FULL_LENGTH];
+	uint32_t data;
+	data=get_Time(boton);
+	sprintf(aux, "TEC%1d  T%04d",boton->index,data);
+	xQueueSend( cola , aux,  portMAX_DELAY  );
+}
+
 
 /* Accion del evento de tecla pulsada */
 void buttonPressed( tLedTecla* config )
@@ -40,10 +51,11 @@ void buttonPressed( tLedTecla* config )
 }
 
 /* Accion de el evento de tecla liberada */
-void buttonReleased( tLedTecla* config )
+void buttonReleased( tLedTecla* config, QueueHandle_t cola  )
 {
 	config->tiempo_up = xTaskGetTickCount();
 	config->tiempo_medido = (config->tiempo_up - config->tiempo_down)/portTICK_RATE_MS;
+	Message_Construction2(config, cola);
 
 }
 
@@ -63,15 +75,16 @@ void fsmButtonError( tLedTecla* config )
 	config->fsmButtonState = BUTTON_UP;
 }
 
-void fsmButtonInit( tLedTecla* config, gpioMap_t button )
+void fsmButtonInit( tLedTecla* config, gpioMap_t button, char index )
 {
 	config->tecla = button;
+	config->index = index;
 	config->fsmButtonState = BUTTON_UP;  // Set initial state
 }
 
 
 // FSM Update Sate Function
-void fsmButtonUpdate( tLedTecla* config )
+void fsmButtonUpdate( tLedTecla* config, QueueHandle_t cola )
 {
 
     switch( config->fsmButtonState )
@@ -122,7 +135,7 @@ void fsmButtonUpdate( tLedTecla* config )
         		config->fsmButtonState = STATE_BUTTON_UP;
 
         		/* ACCION DEL EVENTO ! */
-        		buttonReleased(config);
+        		buttonReleased(config,cola);
         	}
         	else
         	{
@@ -136,4 +149,3 @@ void fsmButtonUpdate( tLedTecla* config )
         	break;
     }
 }
-
